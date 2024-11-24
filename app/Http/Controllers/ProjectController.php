@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\ProjectUser;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -20,7 +24,14 @@ class ProjectController extends Controller
     {
         $this->authorize('viewAny', Project::class);
 
-        $projects = Project::all();
+        $user = Auth::user();
+        $projects = Project::with([
+            'manager' => fn($q) => $q->select('id', 'name')
+        ])->when($user->role === 'manager', function ($query) use ($user) {
+            // If the user is a manager, fetch only their projects
+            $query->where('manager_id', $user->id);
+        })->get();
+
         return view('projects.index', compact('projects'));
     }
 
@@ -31,7 +42,8 @@ class ProjectController extends Controller
     {
         $this->authorize('create', Project::class);
 
-        return view('projects.create');
+        $employees = User::all();
+        return view('projects.create', compact('employees'));
     }
 
     /**
@@ -40,15 +52,44 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Project::class);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        $project = new Project($validated);
-        $project->manager_id = auth()->id();
-        $project->save();
+        try {
+            DB::beginTransaction();
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'employees' => 'required|array', // Ensure employees is an array
+                'employees.*' => 'exists:users,id', // Validate each employee ID
+            ]);
+    
+            // Create the project
+            $project = Project::create([
+                'name' => $request->name,
+                'description' => $request->description,
+                'manager_id' => auth()->id()
+            ]);
+    
+            // Attach employees to the project with 'assigned_by'
+            $managerId = auth()->id(); // Logged-in manager's ID
+            $prgEmployeeArr = [];
+            foreach ($request->employees as $employeeId) {
+    
+                $prgEmployeeArr[] = [
+                    'project_id' => $project->id,
+                    'user_id' => $employeeId,
+                    'assigned_by' => $managerId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+    
+            if(!empty($prgEmployeeArr)){
+                ProjectUser::insert($prgEmployeeArr);
+            }
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return redirect()->route('projects.index')->with('error', 'Something went wrong!');
+        }
 
         return redirect()->route('projects.index')->with('success', 'Project created successfully!');
     }
