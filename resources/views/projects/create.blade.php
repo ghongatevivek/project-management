@@ -34,15 +34,15 @@
                                 <!-- Employees Selection -->
                                 <div class="mb-4">
                                     <label for="employees" class="block text-sm font-medium text-gray-700">Assign Employees</label>
-                                    <div class="mt-2">
-                                        <!-- Multi-select dropdown (Alternative: replace this with checkboxes if needed) -->
-                                        <select name="employees[]" id="employees" multiple
-                                            class="block w-full mt-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                            @foreach($employees as $employee)
-                                            <option value="{{ $employee->id }}">{{ $employee->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        <p class="mt-2 text-sm text-gray-500">Hold Ctrl or Cmd to select multiple employees.</p>
+                                    <div class="grid grid-cols-3 gap-4 mt-2">
+                                        @foreach ($employees as $employee)
+                                            <label class="inline-flex items-center">
+                                                <input type="checkbox" name="employees[]" value="{{ $employee->id }}" 
+                                                    class="form-checkbox" 
+                                                    >
+                                                <span class="ml-2">{{ $employee->name }}</span>
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
 

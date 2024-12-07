@@ -33,6 +33,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    CONST USER_OWNER = 'owner';
+    CONST USER_MANAGER = 'manager';
+    CONST USER_EMPLOYEE = 'employee';
+
     /**
      * The attributes that should be cast.
      *

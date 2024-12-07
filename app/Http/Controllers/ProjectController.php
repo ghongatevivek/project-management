@@ -42,7 +42,7 @@ class ProjectController extends Controller
     {
         $this->authorize('create', Project::class);
 
-        $employees = User::all();
+        $employees = User::select('id', 'name')->where('role', User::USER_EMPLOYEE)->get();
         return view('projects.create', compact('employees'));
     }
 
@@ -111,7 +111,8 @@ class ProjectController extends Controller
     {
         $this->authorize('update', $project);
 
-        return view('projects.edit', compact('project'));
+        $employees = User::select('id', 'name')->where('role', User::USER_EMPLOYEE)->get();
+        return view('projects.edit', compact('project', 'employees'));
     }
 
     /**
